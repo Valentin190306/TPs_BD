@@ -41,6 +41,10 @@ El programa tendrá dos opciones:
 
 void crearNombreArchivo();
 void crearMetadataCampos();
+FILE* leerMetadata();
+void altaDeRegistro(FILE*);
+void bajaDeRegistro(FILE*);
+void modificarRegistro(FILE*);
 
 typedef struct metadataCampo {
 	char nombreCampo[10];
@@ -65,7 +69,6 @@ void generarMetadata () {
 		crearNombreArchivo();
 		crearMetadataCampos(nuevoMetadata);
 		
-		
 		TipoElemento caux;
 		
 		fwrite(&nuevoMetadata.nombreArchivo, sizeof(nuevoMetadata.nombreArchivo), 1, fp);
@@ -73,7 +76,7 @@ void generarMetadata () {
 		
 		for (int i = 0 ; i < nuevoMetadata.cantidadCampos ; i++) {
 			caux = c_desencolar(nuevoMetadata.metaRegistros);
-			fwrite(&caux, sizeof(caux), 1, fp);
+			fwrite(&caux, sizeof(caux), 1, fp);									///
 			c_encolar(nuevoMetadata.metaRegistros, caux);
 		}
 		
@@ -87,7 +90,31 @@ void generarMetadata () {
 }
 
 void generarArchivo () {
-
+	bool continuar = true;
+	int seleccion=0;
+	
+	FILE * fpm = leerMetadata();
+	
+	do {
+		switch (seleccion) {
+			case 0 : {
+				printf("\n%d// Terminando programa . . . ", __LINE__);
+				continuar = false;	
+			} break;
+			
+			case 1 : {
+				altaDeRegistro();
+			} break;
+			
+			case 2 : {
+				bajaDeRegistro();
+			} break;
+			
+			case 3 : {
+				modificarRegistro();				
+			} break;
+		}
+	} while (continuar);
 }
 
 void menuPrincipal () {
@@ -114,20 +141,20 @@ int main (void) {
 			case 0 : {
 				printf("\n%d// Terminando programa . . . ", __LINE__);
 				continuar = false;
-			}
-			break;
+			} break;
 
 			case 1 : {
 				generarMetadata();
-			}
-			break;
+			} break;
 
-			case 2 :
-				menuABM() ;
-				break;
+			case 2 : {
+				menuABM() ;	
+			} break;
 
-			default:
+			default: {
 				printf("\n%d// Entrada invalida . . . ", __LINE__);
+			} break;
+				
 		}
 	} while (continuar);
 	return 0;
@@ -190,6 +217,23 @@ void crearMetadataCampos (metadataRegistro newMeta) {
 		//printf("\n %d - %s - %d - %s", caux.valor-> )
 		c_encolar(newMeta.metaRegistros, caux);	
 	}
-	printf("\n\n < Ingrese - Space - para continuar . . . ");
+	printf("\n\n < Ingrese - SPACE - para continuar . . . ");
 	getchar();
+}
+
+FILE* leerMetadata() {
+	FILE * fpm = fopen("metadata.bin", "rb");
+	
+	struct metadataCampo campo;
+	struct metadataRegistro registro;
+	registro.metaRegistros = c_crear();
+	
+	fread(&registro.nombreArchivo, sizeof(registro.nombreArchivo), 1, fpm);
+	fread(&registro.cantidadCampos, sizeof(registro.cantidadCampos), 1, fpm);
+		
+	TipoElemento caux;
+	for (int i = 0 ; i < nuevoMetadata.cantidadCampos ; i++) {					///
+		fwrite(&caux, sizeof(caux), 1, fp);
+		c_encolar(nuevoMetadata.metaRegistros, caux);
+	}
 }
