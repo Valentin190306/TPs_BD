@@ -38,10 +38,10 @@ El programa tendrá dos opciones:
         utilizando los ítems que previamente ha definido. El programa deberá indicarle al usuario el nombre del ítem y su correspondiente valor para cada registro.
 */
 
-bool altaDeRegistro(struct metadataRegistro);
-void bajaDeRegistro(struct metadataRegistro);
+FILE* altaDeRegistro(struct metadataRegistro, FILE*);
+FILE* bajaDeRegistro(struct metadataRegistro, FILE*);
 void mostrarRegistro(char[], struct metadataRegistro);
-bool modificarRegistro(struct metadataRegistro);
+FILE* modificarRegistro(struct metadataRegistro, FILE*);
 
 typedef struct metadataCampo {
 	char nombreCampo[10];
@@ -92,26 +92,27 @@ int main () {
 			} break;
 			
 			case 1 : {
-				continuar = altaDeRegistro(metadata);
+				FILE * fp = fopen(metadata.nombreArchivo, "a+");
+				altaDeRegistro(metadata, fp);
 			} break;
 			
 			case 2 : {
-				bajaDeRegistro(metadata);
+				FILE * fp = fopen(metadata.nombreArchivo, "r");
+				bajaDeRegistro(metadata, fp);
 			} break;
 			
 			case 3 : {
-				continuar = modificarRegistro(metadata);				
+				FILE * fp = fopen(metadata.nombreArchivo, "r");
+				modificarRegistro(metadata, fp);				
 			} break;
 		}
 	} while (continuar);
 }
 
-bool altaDeRegistro (metadataRegistro registro) {
+FILE* altaDeRegistro (metadataRegistro registro, FILE* fp) {
 	char continuar;
 	
 	int cantidadCampos = (int) (sizeof(registro.campo) / sizeof(metadataCampo));
-	
-	FILE * fp = fopen(registro.nombreArchivo, "a+");
 	
 	if (fp != NULL) {
 		do {
@@ -133,16 +134,14 @@ bool altaDeRegistro (metadataRegistro registro) {
 			scanf("%c", &continuar);
 		} while (continuar != 'n');
 		fclose(fp);
-		return true;
 	} 
 	
-	else {
-		printf("\n%d >! Error, no se pudo abrir/crear el archivo %s, reinicie el programa . . .", __LINE__, registro.nombreArchivo);
-		return false;
-	}	
+	else printf("\n%d >! Error, no se pudo abrir/crear el archivo %s, reinicie el programa . . .", __LINE__, registro.nombreArchivo);
+	
+	return fp;
 }
 
-void bajaDeRegistro (metadataRegistro registro) {
+FILE* bajaDeRegistro (metadataRegistro registro, FILE* fp) {
 	int cantidadCampos = (int) (sizeof(registro.campo) / sizeof(metadataCampo));
 	int posicion, i, y;
 	char verificacion;
@@ -155,7 +154,6 @@ void bajaDeRegistro (metadataRegistro registro) {
 	char bufferReg[bufferCap+1];
 	memset(bufferReg, bufferCap+1, '\0');
 	
-	FILE * fp = fopen(registro.nombreArchivo, "r");
 	FILE * nfp = fopen("archivoTemporal.txt", "w");
 	
 	if (fp != NULL && nfp != NULL) {
@@ -184,31 +182,35 @@ void bajaDeRegistro (metadataRegistro registro) {
 					scanf("%c", &verificacion);
 					
 					if (verificacion == 'n')
-						break;							
+						break;
+					else 			
+						registro.cantidadRegistros--;			
 				}
-				registro.cantidadRegistros--;			
 			}
 			
 			if (verificacion == 'n')
 				remove("archivoTemporal.txt");
-			else
+			else {
 				remove(registro.nombreArchivo);
 				rename("archivoTemporal.txt", registro.nombreArchivo);
+			}
 		}
 		
-		else printf ("\n%d > Archivo vacio . . .");
+		else printf ("\n%d > Archivo vacio . . .", __LINE__);
 	}
 	
 	else printf("\n%d >! Error, no se pudo abrir o no existe el archivo %s, reinicie el programa . . .", __LINE__, registro.nombreArchivo);
+	
+	return nfp;
 }
-
-void mostrarRegistro (char bufferReg, metadataRegistro registro) {
+/*
+void mostrarRegistro (char bufferReg[], metadataRegistro registro) {
 	int cantidadCampos = (int) (sizeof(registro.campo) / sizeof(metadataCampo));
 	int tamanoParcial, posicion = 0;
 	
 	for (int i = 0 ; i < cantidadCampos ; i++) {
 		// Calcular el tamaño del segmento actual
-        tamanoActual = (strlen(bufferReg) - posicion < registro.campo[i].longitudCampo) ? (gitudCadena - posicion) : tamanoSegmento;
+        tamanoParcial = (strlen(bufferReg) - posicion < registro.campo[i].longitudCampo) ? (longitudCadena - posicion) : registro.campo[i].longitudCampo;
 
         // Copiar el segmento actual a una nueva cadena
         char segmento[tamanoActual + 1]; // +1 para el carácter nulo
@@ -222,8 +224,79 @@ void mostrarRegistro (char bufferReg, metadataRegistro registro) {
         posicion += tamanoSegmento;
 	}
 }
-
-bool modificarRegistro (metadataRegistro registro) {
+*/
+FILE* modificarRegistro (metadataRegistro registro, FILE* fp) {
+	int cantidadCampos = (int) (sizeof(registro.campo) / sizeof(metadataCampo));
+	int posicion, i, y;
+	char verificacion;
 	
-	return true;
+	long bufferCap = 0;
+	
+	for (i = 0 ; i < cantidadCampos ; i ++) 
+		bufferCap += registro.campo[i].longitudCampo;
+
+	char bufferReg[bufferCap+1];
+	memset(bufferReg, bufferCap+1, '\0');
+	
+	FILE * nfp = fopen("archivoTemporal.txt", "w");
+	
+	if (fp != NULL && nfp != NULL) {
+		if (registro.cantidadRegistros != 0) {
+			printf("\n%d < Ingrese la posicion del registro a modificar [0 ; %d]", registro.cantidadRegistros);
+			scanf("%d", &posicion);
+			fflush(stdin);
+			
+			for (i = 0 ; i < registro.cantidadRegistros ; i++) {
+				char buffer[registro.campo[i].longitudCampo+1];
+				memset(buffer, registro.campo[i].longitudCampo+1, '\0');
+				
+				if (posicion != i) {
+					for (y = 0 ; y < cantidadCampos ; y++) {
+						fgets(buffer, registro.campo[y].longitudCampo, fp);
+						fputs(buffer, nfp);
+					}
+					fgets(buffer, registro.campo[y].longitudCampo, fp);
+					fputs(buffer, nfp);
+				}
+				
+				else {
+					fgets(bufferReg, bufferCap, fp);
+					mostrarRegistro(bufferReg, registro);
+					printf("\n%d < Desea modificar este registro? (y/n): ");
+					scanf("%c", &verificacion);
+					
+					if (verificacion == 'n')
+						break;
+					else {
+						printf("\n > Se requieren re-ingresar %d campos . . .", cantidadCampos);
+			
+						for (int i = 0 ; i < cantidadCampos ; i++) {
+							char buffer[registro.campo[i].longitudCampo+1];
+							memset(buffer, registro.campo[i].longitudCampo+1, '\0');
+							printf("\n\n%d f > Campo: %s	-	%s	-	%d bytes", __LINE__, registro.campo[i].nombreCampo, registro.campo[i].formato, registro.campo[i].longitudCampo);
+							printf("\n%d < Ingrese el contenido del campo: ", __LINE__);
+							fgets(buffer, registro.campo[i].longitudCampo, stdin);
+							fputs(buffer, fp);
+						}
+						mostrarRegistro (bufferReg, registro) // agregar declaración y concatenación del buffer
+						fputs("\n", fp);
+					}							
+				}		
+			}
+			
+			if (verificacion == 'n')
+				remove("archivoTemporal.txt");
+			else
+				remove(registro.nombreArchivo);
+				rename("archivoTemporal.txt", registro.nombreArchivo);
+		}
+		
+		else printf ("\n%d > Archivo vacio . . .");
+		return nfp;
+	}
+	
+	else {
+		printf("\n%d >! Error, no se pudo abrir o no existe el archivo %s, reinicie el programa . . .", __LINE__, registro.nombreArchivo);
+		return fp;
+	}
 }
