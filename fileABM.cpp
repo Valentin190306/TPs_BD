@@ -57,11 +57,11 @@ typedef struct metadataRegistro {
 } metadataRegistro;
 
 void menuABM () {
-	printf(" __ Modificar archivo: ");
-	printf(" 1 : Alta / Agregar registro");
-	printf(" 2 : Baja / Eliminar registro");
-	printf(" 3 : Modificar registro");
-	printf(" 0 : Terminar programa");
+	printf("\n __ Modificar archivo: ");
+	printf("\n 1 : Alta / Agregar registro");
+	printf("\n 2 : Baja / Eliminar registro");
+	printf("\n 3 : Modificar registro");
+	printf("\n 0 : Terminar programa");
 }
 
 int main () {
@@ -87,7 +87,7 @@ int main () {
 		
 		switch (seleccion) {
 			case 0 : {
-				printf("\n%d// Terminando programa . . . ", __LINE__);
+				printf("\n%d // Terminando programa . . . ", __LINE__);
 				continuar = false;	
 			} break;
 			
@@ -121,7 +121,7 @@ FILE* altaDeRegistro (metadataRegistro registro, FILE* fp) {
 			for (int i = 0 ; i < cantidadCampos ; i++) {
 				char buffer[registro.campo[i].longitudCampo+1];
 				memset(buffer, registro.campo[i].longitudCampo+1, '\0');
-				printf("\n\n%d f > Campo: %s	-	%s	-	%d bytes", __LINE__, registro.campo[i].nombreCampo, registro.campo[i].formato, registro.campo[i].longitudCampo);
+				printf("\n\n%d ln > Campo: %s	-	%s	-	%d bytes", __LINE__, registro.campo[i].nombreCampo, registro.campo[i].formato, registro.campo[i].longitudCampo);
 				printf("\n%d < Ingrese el contenido del campo: ", __LINE__);
 				fgets(buffer, registro.campo[i].longitudCampo, stdin);
 				fputs(buffer, fp);
@@ -143,6 +143,7 @@ FILE* altaDeRegistro (metadataRegistro registro, FILE* fp) {
 
 FILE* bajaDeRegistro (metadataRegistro registro, FILE* fp) {
 	int cantidadCampos = (int) (sizeof(registro.campo) / sizeof(metadataCampo));
+	char filtro[100];
 	int posicion, i, y;
 	char verificacion;
 	
@@ -159,8 +160,9 @@ FILE* bajaDeRegistro (metadataRegistro registro, FILE* fp) {
 	if (fp != NULL && nfp != NULL) {
 		if (registro.cantidadRegistros != 0) {
 			printf("\n%d < Ingrese la posicion del registro a eliminar [0 ; %d]", registro.cantidadRegistros);
-			scanf("%d", &posicion);
+			fgets(filtro, 100, stdin);
 			fflush(stdin);
+			posicion = EntradaEntera(filtro, 0, 0, registro.cantidadRegistros);
 			
 			for (i = 0 ; i < registro.cantidadRegistros ; i++) {
 				char buffer[registro.campo[i].longitudCampo+1];
@@ -203,32 +205,34 @@ FILE* bajaDeRegistro (metadataRegistro registro, FILE* fp) {
 	
 	return nfp;
 }
-/*
+
 void mostrarRegistro (char bufferReg[], metadataRegistro registro) {
 	int cantidadCampos = (int) (sizeof(registro.campo) / sizeof(metadataCampo));
-	int tamanoParcial, posicion = 0;
+	int longitudCadena = strlen(bufferReg);
+    int posicion = 0;
 	
+	printf("\n ln > ");
 	for (int i = 0 ; i < cantidadCampos ; i++) {
-		// Calcular el tamaño del segmento actual
-        tamanoParcial = (strlen(bufferReg) - posicion < registro.campo[i].longitudCampo) ? (longitudCadena - posicion) : registro.campo[i].longitudCampo;
+	   // Calcular el tamaño del segmento actual
+        int tamanoActual = (longitudCadena - posicion < registro.campo[i].longitudCampo) ? (longitudCadena - posicion) : registro.campo[i].longitudCampo;
 
         // Copiar el segmento actual a una nueva cadena
         char segmento[tamanoActual + 1]; // +1 para el carácter nulo
-        strncpy(segmento, cadena + posicion, tamanoActual);
+        strncpy(segmento, bufferReg + posicion, tamanoActual);
         segmento[tamanoActual] = '\0'; // Agregar el carácter nulo al final
 
         // Imprimir o hacer lo que necesites con el segmento
-        printf("Segmento: %s\n", segmento);
+        printf("%s	", segmento);
 
         // Mover la posición al siguiente segmento
-        posicion += tamanoSegmento;
+        posicion += registro.campo[i].longitudCampo;
 	}
 }
-*/
+
 FILE* modificarRegistro (metadataRegistro registro, FILE* fp) {
 	int cantidadCampos = (int) (sizeof(registro.campo) / sizeof(metadataCampo));
 	int posicion, i, y;
-	char verificacion;
+	char verificacion, filtro[100];
 	
 	long bufferCap = 0;
 	
@@ -243,8 +247,9 @@ FILE* modificarRegistro (metadataRegistro registro, FILE* fp) {
 	if (fp != NULL && nfp != NULL) {
 		if (registro.cantidadRegistros != 0) {
 			printf("\n%d < Ingrese la posicion del registro a modificar [0 ; %d]", registro.cantidadRegistros);
-			scanf("%d", &posicion);
+			fgets(filtro, 100, stdin);
 			fflush(stdin);
+			posicion = EntradaEntera(filtro, 0, 0, registro.cantidadRegistros);
 			
 			for (i = 0 ; i < registro.cantidadRegistros ; i++) {
 				char buffer[registro.campo[i].longitudCampo+1];
@@ -276,9 +281,9 @@ FILE* modificarRegistro (metadataRegistro registro, FILE* fp) {
 							printf("\n\n%d f > Campo: %s	-	%s	-	%d bytes", __LINE__, registro.campo[i].nombreCampo, registro.campo[i].formato, registro.campo[i].longitudCampo);
 							printf("\n%d < Ingrese el contenido del campo: ", __LINE__);
 							fgets(buffer, registro.campo[i].longitudCampo, stdin);
-							fputs(buffer, fp);
+							fputs(buffer, nfp);
 						}
-						mostrarRegistro (bufferReg, registro) // agregar declaración y concatenación del buffer
+						mostrarRegistro (bufferReg, registro); // agregar declaración y concatenación del buffer
 						fputs("\n", fp);
 					}							
 				}		
