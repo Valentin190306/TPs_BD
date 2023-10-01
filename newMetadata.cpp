@@ -38,92 +38,83 @@ El programa tendrá dos opciones:
         utilizando los ítems que previamente ha definido. El programa deberá indicarle al usuario el nombre del ítem y su correspondiente valor para cada registro.
 */
 
-void crearNombreArchivo();
-void crearMetadataCampos(struct metadataRegistro);
+void crearMetadataCampos(struct metadataRegistro*);
 
 typedef struct metadataCampo {
-	char nombreCampo[10];
+	char nombreCampo[20];
 	int longitudCampo;
-	char formato[10];
+	char formato[20];
 } metadataCampo;
 
 typedef struct metadataRegistro {
 	char nombreArchivo[15];
 	int cantidadCampos;
-	struct metadataCampo campo[10];
-	unsigned long cantidadRegistros;
+	struct metadataCampo campo[15];
+	int cantidadRegistros;
 } metadataRegistro;
 
 int main () {
-FILE * fp = fopen("metadata.bin", "wb");
-	
+	printf("__ newMetadata");
+	printf("\n__ TP 1 - LISTADO ESPECIFICO - LISTADO GENERICO\n\n");
 	struct metadataRegistro nuevoMetadata;
 	memset(nuevoMetadata.nombreArchivo,'\0', 14);
-
+	crearMetadataCampos(&nuevoMetadata);
+	nuevoMetadata.cantidadRegistros = 0;
+	FILE * fp = fopen("metadata.dat", "wb");
 	if (fp != NULL) {
-		crearNombreArchivo();
-		crearMetadataCampos(nuevoMetadata);
-		nuevoMetadata.cantidadRegistros = 0;
-		fwrite(&nuevoMetadata, sizeof(nuevoMetadata), 1, fp);
-		
-		fclose(fp);
-		
-		printf("\n >> Metadata generada para el archivo %s . . . \n", nuevoMetadata.nombreArchivo);
-		printf("\n << Ingrese - SPACE - para terminar el programa >>");
-		getchar();
-	}
-
-	else printf("\n%d >! Error, no se pudo crear el archivo de metadata, reinicie el programa . . . ", __LINE__);
+			fwrite(&nuevoMetadata, sizeof(nuevoMetadata), 1, fp);
+		    fclose(fp);
+	        printf("\n >> Metadata generada para el archivo %s . . . \n", nuevoMetadata.nombreArchivo);
+	        printf("\n << Ingrese - SPACE - para terminar el programa >>");
+    }
+	else 
+	   printf("\n%d >! Error, no se pudo crear el archivo de metadata, reinicie el programa . . . ", __LINE__);
+	return 0 ;   
 }
 
-void crearNombreArchivo() {
-	char charProhibidos[15] = {'*', '+', '/', '.', '-', '?', '|', '!', '#', '$', '%', '&', '(', ')', '='};
-	char resultado[15];
-	char nomArchivo[10];
-	memset(nomArchivo, '\0', 10);
-	memset(resultado,'\0',15);
-
-	do {
-		printf("\n%d < Ingrese el nombre del archivo (14 carácteres): ", __LINE__);
-		fgets(nomArchivo, 14, stdin);
-
-		if (CadenaValida(nomArchivo, NULL, charProhibidos) == 1) {
-			strcpy(resultado, nomArchivo);
-			strcat(resultado, ".txt");
-		}
-
-		if(nomArchivo[1] == '\0') printf("\n%d >! Nombre de archivo invalido . . . ", __LINE__);
-	} while (nomArchivo[1] == '\0');
-}
-
-void crearMetadataCampos (metadataRegistro newMeta) {
+void crearMetadataCampos (metadataRegistro * newMeta) {
 	int cantidad;
 	char filtro[100];
-	memset(newMeta.nombreArchivo, 10, '\0');
+	memset((*newMeta).nombreArchivo,'\0',10);
+	printf("\n%d < Ingrese el nombre del archivo : ", __LINE__);
+	fgets(filtro, 100, stdin);
+	filtro[strcspn(filtro, "\n")] = '\0';
+//	strcat(filtro,".txt");
+	strcpy((*newMeta).nombreArchivo, filtro);
 	
-	printf("\n%d < Ingrese la cantidad de campos a definir: ", __LINE__);
+	printf("\n%d < Ingrese la cantidad de campos a definir (maximo de 15 campos): ", __LINE__);
 	fgets(filtro, 100, stdin);
 	cantidad = EntradaEntera(filtro, 1, 1, 10);
+	(*newMeta).cantidadCampos = cantidad;
+	(*newMeta).cantidadRegistros = 0;
 	
+	printf("\n");
 	for (int i = 0 ; i < cantidad ; i++) {
-		printf("\n%d < Ingrese el nombre del campo nro. %d: ", __LINE__, i);
-		fgets(newMeta.campo[i].nombreCampo, 10, stdin);
-		
-		printf("\b%d < Ingrese la longitud del campo nro. %d: ", __LINE__, i);
+		memset((*newMeta).campo[i].nombreCampo, 20, '\0');
+		printf("%d < Ingrese el nombre del campo nro. %d: ", __LINE__, i);
+		fgets((*newMeta).campo[i].nombreCampo, 20, stdin);
+		(*newMeta).campo[i].nombreCampo[strcspn((*newMeta).campo[i].nombreCampo, "\n")] = '\0';
+		fflush(stdin);
+		printf("%d < Ingrese la longitud del campo [2; 30] nro. %d: ", __LINE__, i);
 		fgets(filtro, 100, stdin);
-		newMeta.campo[i].longitudCampo = EntradaEntera(filtro, 0, 1, 30);
-		
-		printf("\n%d < Ingrese el formato del campo nro. %d: ", __LINE__, i);
-		fgets(newMeta.campo[i].formato, 10, stdin);
+		(*newMeta).campo[i].longitudCampo = EntradaEntera(filtro, 0, 2, 30);
+		fflush(stdin);
+		memset((*newMeta).campo[i].formato, 20, '\0');
+		printf("%d < Ingrese el formato del campo nro. %d: ", __LINE__, i);
+		fgets((*newMeta).campo[i].formato, 20, stdin);
+		(*newMeta).campo[i].formato[strcspn((*newMeta).campo[i].formato, "\n")] = '\0';
+		fflush(stdin);
+		printf("\n");
 	}
 	
-	printf("\n _____ Resumen: ");
-	printf("\n Archivo: %s		Atributos: %d campos", newMeta.nombreArchivo, newMeta.cantidadCampos);
-	printf("\n Lista de atributos: ");
+	printf("\n ___ Metadata: \n");
+		printf("\n _ Nombre del archivo: %s	", (*newMeta).nombreArchivo);
+		printf("\n _ Cantidad de campos: %d \n", (*newMeta).cantidadCampos);
+		printf("\n Lista de atributos: \n");
 	
-	for (int i = 0 ; i < newMeta.cantidadCampos ; i++)
-		printf("\n %s	-	%i bytes	-	%s", newMeta.campo[i].nombreCampo, newMeta.campo[i].longitudCampo, newMeta.campo[i].formato);
+	for (int i = 0 ; i < (*newMeta).cantidadCampos ; i++)
+		printf("\n	%s - %i bytes - %s", (*newMeta).campo[i].nombreCampo, (*newMeta).campo[i].longitudCampo, (*newMeta).campo[i].formato);
 	
-	printf("\n\n < Ingrese - SPACE - para continuar . . . ");
+	printf("\n\n < Ingrese - ENTER - para continuar . . . ");
 	getchar();
 }

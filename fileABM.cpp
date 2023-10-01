@@ -38,270 +38,239 @@ El programa tendrá dos opciones:
         utilizando los ítems que previamente ha definido. El programa deberá indicarle al usuario el nombre del ítem y su correspondiente valor para cada registro.
 */
 
-FILE* altaDeRegistro(struct metadataRegistro, FILE*);
-FILE* bajaDeRegistro(struct metadataRegistro, FILE*);
-void mostrarRegistro(char[], struct metadataRegistro);
-FILE* modificarRegistro(struct metadataRegistro, FILE*);
+
+int leerMetadata(struct metadataRegistro*);
+int actualizarMetadata (struct metadataRegistro*);
+
+int altaDeRegistro(struct metadataRegistro*);
+int bajaDeRegistro(struct metadataRegistro*);
+int modificarRegistro(struct metadataRegistro*);
+int mostrarRegistros(struct metadataRegistro*);
 
 typedef struct metadataCampo {
-	char nombreCampo[10];
+	char nombreCampo[20];
 	int longitudCampo;
-	char formato[10];
+	char formato[20];
 } metadataCampo;
 
 typedef struct metadataRegistro {
 	char nombreArchivo[15];
 	int cantidadCampos;
-	struct metadataCampo campo[10];
-	unsigned long cantidadRegistros;
+	struct metadataCampo campo[15];
 } metadataRegistro;
 
-void menuABM () {
+int menuABM (void) {
+	char filtro[100];
+	int seleccion = 0;
 	printf("\n __ Modificar archivo: ");
 	printf("\n 1 : Alta / Agregar registro");
 	printf("\n 2 : Baja / Eliminar registro");
 	printf("\n 3 : Modificar registro");
+	printf("\n 4 : Mostrar Archivo de Datos");
 	printf("\n 0 : Terminar programa");
+    printf("\n%d < Ingrese la accion: ", __LINE__);	
+	fgets(filtro, 100, stdin);
+	seleccion = EntradaEntera(filtro, 0, 0, 4);
+	return 	seleccion ;
 }
 
-int main () {
-	bool continuar = true;
-	int seleccion = 0;
-	char filtro[100];
-	
-	do {
-		menuABM ();	
-		printf("\n%d < Ingrese la accion: ", __LINE__);	
-		fgets(filtro, 100, stdin);
-		seleccion = EntradaEntera(filtro, 0, 0, 3);
-		
-		FILE * fpm = fopen("metadata.bin", "rb+");
-		struct metadataRegistro metadata;
-		
-		if (fpm == NULL) {
-			printf("\n%d >! Error, no se pudo leer el archivo de metadata, reinicie el programa . . . ", __LINE__);
-			seleccion = 0;
-		} 
-		
-		else fread(&metadata, sizeof(metadataRegistro), 1, fpm);
-		
-		switch (seleccion) {
-			case 0 : {
-				printf("\n%d // Terminando programa . . . ", __LINE__);
-				continuar = false;	
-			} break;
-			
+int main (void) {
+	int opcion ;
+	struct metadataRegistro metadata;
+	if (leerMetadata(&metadata) == -1)
+       return -1; 	
+	while((opcion = menuABM())!=0)
+	{
+	  //  printf("\n _ Cantidad de registros: %d \n", metadata.cantidadRegistros);	
+		switch (opcion)
+		 {
 			case 1 : {
-				FILE * fp = fopen(metadata.nombreArchivo, "a+");
-				altaDeRegistro(metadata, fp);
-			} break;
-			
+				//alta de datos
+				altaDeRegistro(&metadata);
+				break;
+			} 
 			case 2 : {
-				FILE * fp = fopen(metadata.nombreArchivo, "r");
-				bajaDeRegistro(metadata, fp);
-			} break;
-			
+				//baja de datos
+				bajaDeRegistro(&metadata);
+				break;
+			} 
 			case 3 : {
-				FILE * fp = fopen(metadata.nombreArchivo, "r");
-				modificarRegistro(metadata, fp);				
-			} break;
+				//modifica datos
+				modificarRegistro(&metadata);
+				break;				
+			} 
+			case 4 : {
+				//mostrar datos
+				mostrarRegistros(&metadata);
+				break;				
+			}
 		}
-	} while (continuar);
+	} 
+	printf("\n%d // Terminando programa . . . ", __LINE__);
+	actualizarMetadata(&metadata);
+	return 0 ;
 }
 
-FILE* altaDeRegistro (metadataRegistro registro, FILE* fp) {
+
+int altaDeRegistro (metadataRegistro * registro) {
 	char continuar;
-	
-	int cantidadCampos = (int) (sizeof(registro.campo) / sizeof(metadataCampo));
-	
+	FILE * fp = fopen((*registro).nombreArchivo, "a");
 	if (fp != NULL) {
 		do {
-			printf("\n > Se requieren ingresar %d campos . . .", cantidadCampos);
-			
-			for (int i = 0 ; i < cantidadCampos ; i++) {
-				char buffer[registro.campo[i].longitudCampo+1];
-				memset(buffer, registro.campo[i].longitudCampo+1, '\0');
-				printf("\n\n%d ln > Campo: %s	-	%s	-	%d bytes", __LINE__, registro.campo[i].nombreCampo, registro.campo[i].formato, registro.campo[i].longitudCampo);
+			printf("\n > Se requieren ingresar %d campos . . .", (*registro).cantidadCampos);
+			for (int i = 0 ; i < (*registro).cantidadCampos ; i++) {
+				char buffer[(*registro).campo[i].longitudCampo+1];
+				memset(buffer, (*registro).campo[i].longitudCampo+1, '\0');
+				printf("\n\n%d ln > Campo: %s - %s - %d bytes", __LINE__, (*registro).campo[i].nombreCampo, (*registro).campo[i].formato, (*registro).campo[i].longitudCampo);
 				printf("\n%d < Ingrese el contenido del campo: ", __LINE__);
-				fgets(buffer, registro.campo[i].longitudCampo, stdin);
+				fgets(buffer, ((*registro).campo[i].longitudCampo), stdin);
+				fflush(stdin);
+				buffer[strcspn(buffer, "\n")] = '\0';
 				fputs(buffer, fp);
+				fputs(" ", fp);	
 			}
-			
-			fputs("\n", fp);
-			registro.cantidadRegistros++;							
-									
+			fputs("\n", fp);												
 			printf ("\n%d < Continuar agregando registros? (y/n): ", __LINE__);
 			scanf("%c", &continuar);
+			fflush(stdin);
 		} while (continuar != 'n');
 		fclose(fp);
+		return 0 ;
 	} 
-	
-	else printf("\n%d >! Error, no se pudo abrir/crear el archivo %s, reinicie el programa . . .", __LINE__, registro.nombreArchivo);
-	
-	return fp;
+	printf("\n%d >! Error, no se pudo abrir o no existe el archivo %s, reinicie el programa . . .\n", __LINE__, ((*registro).nombreArchivo));
+	return -1;
 }
 
-FILE* bajaDeRegistro (metadataRegistro registro, FILE* fp) {
-	int cantidadCampos = (int) (sizeof(registro.campo) / sizeof(metadataCampo));
-	char filtro[100];
-	int posicion, i, y;
-	char verificacion;
+int bajaDeRegistro (metadataRegistro * registro) {				
+	int posicion, i ;
+	int bufferCap = 0;
 	
-	long bufferCap = 0;
-	
-	for (i = 0 ; i < cantidadCampos ; i ++) 
-		bufferCap += registro.campo[i].longitudCampo;
-
+	for (i = 0 ; i < (*registro).cantidadCampos ; i ++) 
+		bufferCap += (*registro).campo[i].longitudCampo;
+	bufferCap += ((*registro).cantidadCampos);
 	char bufferReg[bufferCap+1];
-	memset(bufferReg, bufferCap+1, '\0');
 	
-	FILE * nfp = fopen("archivoTemporal.txt", "w");
-	
-	if (fp != NULL && nfp != NULL) {
-		if (registro.cantidadRegistros != 0) {
-			printf("\n%d < Ingrese la posicion del registro a eliminar [0 ; %d]", registro.cantidadRegistros);
-			fgets(filtro, 100, stdin);
-			fflush(stdin);
-			posicion = EntradaEntera(filtro, 0, 0, registro.cantidadRegistros);
-			
-			for (i = 0 ; i < registro.cantidadRegistros ; i++) {
-				char buffer[registro.campo[i].longitudCampo+1];
-				memset(buffer, registro.campo[i].longitudCampo+1, '\0');
-				
-				if (posicion != i-1) {
-					for (y = 0 ; y < cantidadCampos ; y++) {
-						fgets(buffer, registro.campo[y].longitudCampo, fp);
-						fputs(buffer, nfp);
-					}
-					fgets(buffer, registro.campo[y].longitudCampo, fp);
-					fputs(buffer, nfp);
-				}
-				
-				else {
-					fgets(bufferReg, bufferCap, fp);
-					mostrarRegistro(bufferReg, registro);
-					printf("\n%d < Desea eliminar este registro? (y/n): ");
-					scanf("%c", &verificacion);
-					
-					if (verificacion == 'n')
-						break;
-					else 			
-						registro.cantidadRegistros--;			
-				}
-			}
-			
-			if (verificacion == 'n')
-				remove("archivoTemporal.txt");
-			else {
-				remove(registro.nombreArchivo);
-				rename("archivoTemporal.txt", registro.nombreArchivo);
-			}
-		}
+	memset(bufferReg, '\0', bufferCap+1);
+	FILE * fp = fopen((*registro).nombreArchivo, "r");
+	if (fp != NULL) {
+		FILE * nfp = fopen("archivoTemporal.txt", "w");
+		printf("\n%d < Ingrese la posicion ordinal del registro a eliminar: ", __LINE__);
+		scanf("%d",&posicion);
+		fflush(stdin);
 		
-		else printf ("\n%d > Archivo vacio . . .", __LINE__);
-	}
-	
-	else printf("\n%d >! Error, no se pudo abrir o no existe el archivo %s, reinicie el programa . . .", __LINE__, registro.nombreArchivo);
-	
-	return nfp;
-}
-
-void mostrarRegistro (char bufferReg[], metadataRegistro registro) {
-	int cantidadCampos = (int) (sizeof(registro.campo) / sizeof(metadataCampo));
-	int longitudCadena = strlen(bufferReg);
-    int posicion = 0;
-	
-	printf("\n ln > ");
-	for (int i = 0 ; i < cantidadCampos ; i++) {
-	   // Calcular el tamaño del segmento actual
-        int tamanoActual = (longitudCadena - posicion < registro.campo[i].longitudCampo) ? (longitudCadena - posicion) : registro.campo[i].longitudCampo;
-
-        // Copiar el segmento actual a una nueva cadena
-        char segmento[tamanoActual + 1]; // +1 para el carácter nulo
-        strncpy(segmento, bufferReg + posicion, tamanoActual);
-        segmento[tamanoActual] = '\0'; // Agregar el carácter nulo al final
-
-        // Imprimir o hacer lo que necesites con el segmento
-        printf("%s	", segmento);
-
-        // Mover la posición al siguiente segmento
-        posicion += registro.campo[i].longitudCampo;
-	}
-}
-
-FILE* modificarRegistro (metadataRegistro registro, FILE* fp) {
-	int cantidadCampos = (int) (sizeof(registro.campo) / sizeof(metadataCampo));
-	int posicion, i, y;
-	char verificacion, filtro[100];
-	
-	long bufferCap = 0;
-	
-	for (i = 0 ; i < cantidadCampos ; i ++) 
-		bufferCap += registro.campo[i].longitudCampo;
-
-	char bufferReg[bufferCap+1];
-	memset(bufferReg, bufferCap+1, '\0');
-	
-	FILE * nfp = fopen("archivoTemporal.txt", "w");
-	
-	if (fp != NULL && nfp != NULL) {
-		if (registro.cantidadRegistros != 0) {
-			printf("\n%d < Ingrese la posicion del registro a modificar [0 ; %d]", registro.cantidadRegistros);
-			fgets(filtro, 100, stdin);
-			fflush(stdin);
-			posicion = EntradaEntera(filtro, 0, 0, registro.cantidadRegistros);
-			
-			for (i = 0 ; i < registro.cantidadRegistros ; i++) {
-				char buffer[registro.campo[i].longitudCampo+1];
-				memset(buffer, registro.campo[i].longitudCampo+1, '\0');
-				
-				if (posicion != i) {
-					for (y = 0 ; y < cantidadCampos ; y++) {
-						fgets(buffer, registro.campo[y].longitudCampo, fp);
-						fputs(buffer, nfp);
-					}
-					fgets(buffer, registro.campo[y].longitudCampo, fp);
-					fputs(buffer, nfp);
-				}
-				
-				else {
-					fgets(bufferReg, bufferCap, fp);
-					mostrarRegistro(bufferReg, registro);
-					printf("\n%d < Desea modificar este registro? (y/n): ");
-					scanf("%c", &verificacion);
-					
-					if (verificacion == 'n')
-						break;
-					else {
-						printf("\n > Se requieren re-ingresar %d campos . . .", cantidadCampos);
-			
-						for (int i = 0 ; i < cantidadCampos ; i++) {
-							char buffer[registro.campo[i].longitudCampo+1];
-							memset(buffer, registro.campo[i].longitudCampo+1, '\0');
-							printf("\n\n%d f > Campo: %s	-	%s	-	%d bytes", __LINE__, registro.campo[i].nombreCampo, registro.campo[i].formato, registro.campo[i].longitudCampo);
-							printf("\n%d < Ingrese el contenido del campo: ", __LINE__);
-							fgets(buffer, registro.campo[i].longitudCampo, stdin);
-							fputs(buffer, nfp);
-						}
-						mostrarRegistro (bufferReg, registro); // agregar declaración y concatenación del buffer
-						fputs("\n", fp);
-					}							
-				}		
+		for (i = 1 ; fgets(bufferReg, bufferCap, fp) ; i++) {
+			if (posicion != i) {
+		    	fputs(bufferReg, nfp);
 			}
-			
-			if (verificacion == 'n')
-				remove("archivoTemporal.txt");
-			else
-				remove(registro.nombreArchivo);
-				rename("archivoTemporal.txt", registro.nombreArchivo);
-		}
-		
-		else printf ("\n%d > Archivo vacio . . .");
-		return nfp;
+		}	
+		fclose(fp);
+		remove((*registro).nombreArchivo);
+		fclose(nfp);
+		rename("archivoTemporal.txt", (*registro).nombreArchivo);
+		return 0 ;
 	}
-	
 	else {
-		printf("\n%d >! Error, no se pudo abrir o no existe el archivo %s, reinicie el programa . . .", __LINE__, registro.nombreArchivo);
-		return fp;
+	   	printf("\n%d >! Error, no se pudo abrir o no existe el archivo %s, reinicie el programa . . .\n", __LINE__, ((*registro).nombreArchivo));
+	    return -1;   	
 	}
+}
+
+int modificarRegistro (metadataRegistro * registro) {
+	int posicion, i, y;
+	long bufferCap = 0;
+	
+	for (i = 0 ; i < (*registro).cantidadCampos ; i ++) 
+		bufferCap += (*registro).campo[i].longitudCampo;
+	bufferCap += (*registro).cantidadCampos;
+	char bufferReg[bufferCap+1];
+	memset(bufferReg, '\0', bufferCap+1);
+	
+	FILE * fp = fopen((*registro).nombreArchivo, "r");
+	if (fp != NULL) {
+		FILE * nfp = fopen("archivoTemporal.txt", "w");
+		printf("\n%d < Ingrese la posicion ordinal del registro a modificar: ", __LINE__ );
+		scanf("%d",&posicion);
+		fflush(stdin);
+		for (i = 1 ; fgets(bufferReg, bufferCap, fp); i++) {
+			if (posicion != i) {
+				fputs(bufferReg, nfp);
+			}
+			else {  // encontre el registro que quiero modificar
+				printf(" Registro leido %s \n ",bufferReg);			
+				printf("\n > Se requieren re-ingresar %d campos . . .", (*registro).cantidadCampos);			
+				for (int i = 0 ; i < (*registro).cantidadCampos ; i++) {
+					char buffer[(*registro).campo[i].longitudCampo+1];
+					memset(buffer, '\0', (*registro).campo[i].longitudCampo+1);
+					printf("\n\n%d f > Campo: %s - %s - %d bytes", __LINE__, (*registro).campo[i].nombreCampo, (*registro).campo[i].formato, (*registro).campo[i].longitudCampo);
+					printf("\n%d < Ingrese el contenido del campo: ", __LINE__);
+					fgets(buffer, (*registro).campo[i].longitudCampo, stdin);
+					fflush(stdin);
+					fputs(buffer, nfp);
+					fputs(" ", nfp);
+				}
+				fputs("\n", nfp);
+			}		
+		}
+		fclose(fp);
+		remove((*registro).nombreArchivo);
+		fclose(nfp);
+		rename("archivoTemporal.txt", ((*registro).nombreArchivo));
+		return 0;
+	}
+	printf("\n%d >! Error, no se pudo abrir o no existe el archivo %s, reinicie el programa . . .\n", __LINE__, ((*registro).nombreArchivo));
+	return -1;
+}
+
+int mostrarRegistros (metadataRegistro * registro) {
+	char reg[100];
+	int i = 1;
+	memset(reg,'\0',100);
+	FILE * fp = fopen((*registro).nombreArchivo, "r");
+	if (fp != NULL) {
+		printf("\n _ Archivo: %s\n", (*registro).nombreArchivo);
+	    while(fgets(reg, 100, fp)) {
+	      	printf("	reg[%d] - %s", i, reg);
+	      	i++;
+		}
+	    fclose(fp);
+	    return 0;
+	}
+	printf("\n%d >! Error, no se pudo abrir o no existe el archivo %s, reinicie el programa . . .\n", __LINE__, ((*registro).nombreArchivo));
+	return -1;
+}
+
+int leerMetadata(metadataRegistro * metadata){	
+	FILE * fpm = fopen("metadata.dat", "rb");
+	if (fpm == NULL) {
+		printf("\n%d >! Error, no se pudo leer el archivo de metadata, reinicie el programa . . . ", __LINE__);
+		return -1;
+	} 	
+	else {
+	  	fread(metadata, sizeof(struct metadataRegistro), 1, fpm);
+	  	fclose(fpm);
+	  	printf("\n Archivo: %s\n", (*metadata).nombreArchivo);
+		printf("\n ___ Metadata: \n");
+		printf("\n _ Nombre del archivo: %s	", (*metadata).nombreArchivo);
+	  	printf("\n _ Cantidad de campos: %d \n", (*metadata).cantidadCampos);		
+	  	printf("\n _ Lista de atributos: ");
+	  	for (int i = 0 ; i < (*metadata).cantidadCampos ; i++)
+			printf("\n	%s - %i bytes - %s", (*metadata).campo[i].nombreCampo, (*metadata).campo[i].longitudCampo, (*metadata).campo[i].formato);
+	  	printf("\n");		
+    }
+    return 0;
+}
+
+int actualizarMetadata (struct metadataRegistro * metadata) {
+	FILE * nfp = fopen("metadata.dat", "wb");
+	 if (nfp == NULL) {
+        perror("Error al abrir metadata.dat");
+        return -1;
+    }
+    size_t elementosEscritos = fwrite(metadata, sizeof(struct metadataRegistro), 1, nfp);
+    fclose(nfp);
+	if (elementosEscritos != 1) {
+        perror("Error al escribir en metadataActualizada.dat");
+        return -1;
+    }
+    return 0;
 }
